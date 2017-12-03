@@ -1,0 +1,5 @@
+DocID:555 Dept:5 Age:20
+Dept:10 Manager:555 DocID:777 Age:30
+DocID:555 Dept:7 Age:20
+Age:25 Manager:555 DocID:222
+DocID:555 Dept:7 Age:21
