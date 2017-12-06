@@ -12,10 +12,10 @@ int main (void) {
 	FILE *query = fopen("queries.txt","r");
 	if (query == NULL) { printf("Query File cannot be opened for reading. Exiting . . .\n"); exit(1); }
 
-	char *florb;
+	char *curr;
 	char *key; int val;
-	int i,id = 0,dbSize = 4; // will also serve as count of documents
-	int count = 0; // for counting function
+	int i,j,id = 0,dbSize = 4; // will also serve as count of documents
+	int count = 0,x; // for counting function. x is just a handy temp variable
 
 	Field ***db = malloc(sizeof(Field **) * 4),***temp;
 	if (db == NULL) {
@@ -23,7 +23,10 @@ int main (void) {
 		exit(1);
 		}
 
-	florb = readLine(data);
+
+
+	/* Process the DATA.TXT file, make database */
+	curr = readLine(data);
 
 	// Read in a new document
 	while (!feof(data)) {
@@ -38,7 +41,7 @@ int main (void) {
 			}
 		db[id] = malloc(sizeof(Field *) * HASH);
 		install(db[id],"_id",id);
-		key = strtok(florb,": ");
+		key = strtok(curr,": ");
 
 		// Parse fields
 		while (key != NULL) {
@@ -49,29 +52,103 @@ int main (void) {
 			}
 			
 		id++; // Increment _id
-		free(florb);
-		florb = readLine(data);
+		free(curr);
+		curr = readLine(data);
 		}
 
-	printf("===QUERIES===\n");
 
-	char *curr = readLine(query),*collection,*operation,*origQuery,*version;
+
+
+	/* Process the QUERIES.TXT file */
+
+	curr = readLine(query);
+	char *collection,*operation,*origQuery,*version,*fieldName,*threshold,*queryOp;
+	PList *conditions; Pnode *iter;
+
 	while(!feof(query)) {
 		origQuery = myStrdup(curr);
 		printf("Processing '%s'\n",curr);
+		printf("=====QUERY=====\n");
+		
+		/* PARSE COLLECTION NAME */
 		collection = strtok(curr,".");
 		if (strcmp("final",collection) == 0) {
 			operation = strtok(NULL,"(");
+			curr = operation;
+			curr = curr + 7; // Get past the "query(["
 
+			/* PARSE OPERATION NAME */ 
 			if (strcmp(operation,"query") == 0) {
-				printf("QUERY NOT IMPLEMENTED\n");
-				/*
-				curr = operation;
-				curr = strtok(NULL,"[]=<>");
-				printf("CURR: %s (%c)\n",curr,curr[4]);
-				curr = strtok(NULL,"");
-				printf("CURR2: %s\n",curr);
-				*/
+				conditions = newPList();
+				while (curr[0] != ',') {
+						if (curr[0] == ']') break;
+						else if (curr[0] == ' ') curr++; // Get rid of the space that comes from th
+						// Get the field, queryOp, and value for each condition
+						queryOp = strpbrk(curr,"<=>"); // Operation is being reused here
+						fieldName = myStrdup(curr);
+						fieldName = strtok(fieldName,"<=>");
+						threshold = myStrdup(fieldName);
+						threshold = strtok(NULL,",] ");
+
+
+						// Find out what the queryOp is
+						switch (queryOp[0]) {
+							case '<':
+								if (queryOp[1] == '=') 
+									queryOp = "<=";
+								else if (queryOp[1] == '>')
+									queryOp = "<>";
+								else
+									queryOp = "<";
+								break;
+							case '>':
+								if (queryOp[1] == '=') 
+									queryOp = ">=";
+								else queryOp = ">";
+								break;
+							case '=':
+								queryOp = "=";
+								break;
+							default:
+								printf("Error! '%c' is not a valid queryOp!\n",operation[0]);
+							}
+						
+				
+						insertParam(conditions,fieldName,queryOp,atoi(threshold));
+						curr = strtok(NULL,"");
+						}
+
+
+				printf("Time to process the projection\n");
+				curr = strtok(NULL,"]");
+				printf("CURR: %s\n",curr);
+				curr = curr + 3;
+				printf("CURR: %s\n",curr);
+				fieldName = strtok(curr,",");
+				printf("FIELD: %s\n",fieldName);
+
+				for (i = 0; i < 0; i++) {
+				//for (i = 0; i < id; i++) {
+					iter = conditions->head;
+					/* Check the document values against each parameter */
+					x = 1;
+
+					while (iter != NULL && x == 1) {
+						if (lookup(db[i],iter->field) == NULL) x = 1;
+						else {
+							x = compareIntegers(lookup(db[i],iter->field)->value,iter->value,iter->operation);
+							}
+						iter = iter->next;
+						}
+
+					if (iter != NULL) continue;
+					printf("Document #%d SUCCESS!\n",i);
+
+					}
+				
+			
+
+				//freePList(conditions);
 				}
 
 
@@ -80,12 +157,10 @@ int main (void) {
 				count = 0;
 				curr = operation;
 				curr = myStrdup(strtok(NULL,"[]"));
-				printf("CURR: %s\n",curr);
 
 				version = strtok(NULL,"[]), ");
 				if (version == NULL) printf("Use All Versions\n");
 				else printf("Use the last %d versions\n",atoi(version));
-				printf("CURR2: %s / Operation: %s\n",curr,operation);
 				
 				for (i = 0; i < id; i++) {
 					if (lookup(db[i],curr) != NULL) count++;
@@ -114,14 +189,13 @@ int main (void) {
 			printf("\n\n");
 			}
 				
-		free(curr);
+		//free(curr);
 		free(origQuery);
 
 		curr = readLine(query);
 		}
 
-	int j;
-	for (i = 0; i < dbSize; i++) {
+	for (i = 0; i < id; i++) {
 		for (j = 0; j < HASH; j++) {
 			if (db[i][j] != NULL) { free(db[i][j]->key); free(db[i][j]); }
 			}

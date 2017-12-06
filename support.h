@@ -4,12 +4,18 @@
  */
 
 
-typedef struct parameterList {
+typedef struct param {
+	char *field;
+	char *operation;
+	int value;
+	struct param *next;
+	} Pnode;
+
+typedef struct paramlist  {
 	int size;
-	char **fieldList;
-	char **operationList;
-	char **valueList;
-	} Param;
+	Pnode *head;
+	Pnode *tail;
+	} PList;
 
 typedef struct fieldList {
 	int size;
@@ -19,3 +25,6 @@ typedef struct fieldList {
 
 // x is db entry, y is threshold
 int compareIntegers (int,int,char *);
+
+PList *newPList(void);
+void insertParam(PList *,char *,char *,int);

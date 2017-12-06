@@ -23,3 +23,43 @@ int compareIntegers (int x, int y, char *op) {
         }
     }
 
+
+PList *newPList(void) {
+	PList *new = malloc(sizeof(PList));
+	if (new == 0) { 
+		printf("ERROR: Could not allocate new parameter list. Exiting . . .\n");
+		exit(1);
+		}
+
+	new->size = 0;
+	new->head = 0;
+	new->tail = 0;
+
+	return new;
+	}
+
+
+void insertParam(PList *list,char *field,char *op,int value) {
+	Pnode *new = malloc(sizeof(Pnode));
+	if (new  == 0) {
+		printf("ERROR: Could not allocate new parameter node. Exiting . . .\n");
+		exit(1);
+		}
+
+	new->field = field;
+	new->operation = op;
+	new->value = value;
+
+	if (list->size == 0) list->head = list->tail = new;
+
+	else if (list->head == list->tail) {
+		list->tail = new;
+		list->head->next = list->tail;
+		}
+
+	else { list->tail->next = new; list->tail = new; }
+
+	++list->size;
+
+	return;
+	}
