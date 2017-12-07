@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include <string.h> // strtok
 #include "scanner.h"
-#include "support.h"
+#include "tree.h"
 #include "dictionary.h"
 #include "list.h"
 
-void processQuery(Document *,PList *,PList *);
+int processQuery(Document *,PList *,PList *);
 
 int main (void) {
 	FILE *data = fopen("data.txt","r");
@@ -93,21 +93,22 @@ int main (void) {
 	while(!feof(query)) {
 		//while (strlen(curr) == 0 && !(feof(query))) curr = readLine(query);
 		origQuery = myStrdup(curr);
-		printf("Processing '%s'\n",curr);
+		printf("%s\n",curr);
 		
 		/* PARSE COLLECTION NAME */
 		collection = strtok(curr,".");
 		if (strcmp("final",collection) == 0) {
 			operation = strtok(NULL,"(");
-			curr = operation;
-			curr = curr + 7; // Get past the "query(["
 
 			/* PARSE OPERATION NAME */ 
 			if (strcmp(operation,"query") == 0) {
+				curr = operation;
+				curr = curr + 7; // Get past the "query(["
+			
+
 				version = NULL;
-printf("=====QUERY=====\n");
-				conditions = newPList();
-				while (curr[0] != ',' && curr[0] != ']') {
+				conditions = newPList(); projection = newPList();
+				while (curr[0] != ',' && curr[0] != ']' && curr[0] != '\0') {
 						if (curr[0] == ']') { break; }
 						else if (curr[0] == ' ') curr++; // Get rid of the space that comes from th
 						// Get the field, queryOp, and value for each condition
@@ -117,6 +118,8 @@ printf("=====QUERY=====\n");
 						threshold = myStrdup(fieldName);
 						threshold = strtok(NULL,",] ");
 
+
+						if (threshold == NULL) { printf("SyntaxError: %s is not a valid condition.\n",curr); break; }
 
 						// Find out what the queryOp is
 						switch (queryOp[0]) {
@@ -149,24 +152,28 @@ printf("=====QUERY=====\n");
 				
 				//curr = strtok(NULL,"]");
 
-				curr += 3;
-				if (curr[0] == '[') curr++;
-				while (curr && curr[0] != ')' && curr[0] != ',') {
-					fieldName = strtok(myStrdup(curr),",]");
-					if (fieldName[0] == ' ') fieldName++;
-					insertParam(projection,fieldName,NULL,0);
-					curr = strtok(NULL,"");
-					}
+				if (curr[0] != '\0') {
+						curr += 3;
+						if (curr[0] == '[') curr++;
+						while (curr && curr[0] != ')' && curr[0] != ',' && curr[0] !=']') {
+							fieldName = strtok(myStrdup(curr),",]");
+							if (fieldName[0] == ' ') fieldName++;
+							insertParam(projection,fieldName,NULL,0);
+							curr = strtok(NULL,"");
+							}
 
-				if (curr[0] == ',') { 
-					curr += 3;
-					if (curr[0] == ']') version = NULL;
-					else { curr = strtok(curr,"]"); version = curr; }
-			
+						if (curr[0] == ']') curr++;
+						if (curr[0] == ',') { 
+							curr += 3;
+							if (curr[0] == ']') version = NULL;
+							else { curr = strtok(curr,"]"); version = curr; }
+					
+							}
+						else { version = "1"; }
 					}
-				else { version = "1"; }
+				else version = "1";
 				
-				
+
 				// All Versions
 				if (version == NULL) {
 					for (i = 0; i < HASH; i++) {
@@ -188,9 +195,9 @@ printf("=====QUERY=====\n");
 						iter1 = db[i];
 						while (iter1 != NULL) {
 							iter2 = iter1;
-							for (j = 0; j < atoi(version); j++) {
-								if (iter2 == NULL) break;
-								processQuery(iter2,conditions,projection);
+							j = 0;
+							while (iter2 != NULL && j < atoi(version)) {
+								j += processQuery(iter2,conditions,projection);
 								iter2 = iter2->older;
 								}
 							iter1 = iter1->next;
@@ -210,8 +217,6 @@ printf("=====QUERY=====\n");
 				count = 0;
 				curr = operation;
 				curr = myStrdup(strtok(NULL,"[]"));
-
-				//version = strtok(NULL,"[]), "); 
 
 				version = strtok(NULL,"]), ");
 				if (version) version++;
@@ -284,7 +289,7 @@ printf("=====QUERY=====\n");
 				}
 
 			else { 
-				printf("'%s' is not a valid operation.\n",origQuery);
+				printf("TypeError: %s is not a function\n",origQuery);
 				}
 
 			printf("\n\n");
@@ -315,11 +320,14 @@ printf("=====QUERY=====\n");
 	}
 
 
-void processQuery(Document *currDoc,PList *conditions,PList *projection) {
-	Pnode *iter;
-	int x = 1,eligible = 0,vn = 0;
+int processQuery(Document *currDoc,PList *conditions,PList *projection) {
+	Pnode *iter; Field **attr = NULL; Field *curr;
+	int i,x = 1,eligible = 0,vn = 0;
 	iter = conditions->head;
 	// Check the document values against each parameter 
+
+	//if (conditions->head == NULL) printf("No Conditions\n");
+	//if (projection->head == NULL) printf("All Attributes\n");
 
 	if (conditions->head == NULL) {
 		eligible = 1;
@@ -339,7 +347,7 @@ void processQuery(Document *currDoc,PList *conditions,PList *projection) {
 				iter = iter->next;
 				}
 
-		if (iter != NULL) { currDoc = currDoc->next; return; }
+		if (iter != NULL) { currDoc = currDoc->next; return 0; }
 		}
 
 
@@ -347,7 +355,26 @@ void processQuery(Document *currDoc,PList *conditions,PList *projection) {
 	if (eligible == 1) {
 		iter = projection->head;
 
+		if (iter == NULL) { 
+			printf("vn: %d ",currDoc->version);
+			attr = currDoc->attributes;
+			for (i = 0; i < HASH; i++) {
+				curr = attr[i];
+				while (curr != NULL) {
+					printf("%s:%d ",curr->key,curr->value);
+					curr = curr->next;
+					}
+				}
+			printf("\n");
+
+			return 1;
+			}
+
+
 		while (iter != NULL) {
+			//if (currDoc->attributes == NULL) printf("NO ATTRIBUTES\n");
+			//if (iter->field == NULL) printf("NO FIELD\n");
+
 			if (lookup(currDoc->attributes,iter->field) != NULL) {
 				if (vn == 0) { printf("vn:%d ",currDoc->version); vn = 1; }
 
@@ -355,9 +382,9 @@ void processQuery(Document *currDoc,PList *conditions,PList *projection) {
 				}
 			iter = iter->next;
 			}
-		printf("\n");
+		if (vn) printf("\n");
 		}
 
-	return;
+	return vn;
     }
 
