@@ -6,6 +6,8 @@
 #include "dictionary.h"
 #include "list.h"
 
+void processQuery(Document *,PList *,PList *);
+
 int main (void) {
 	FILE *data = fopen("data.txt","r");
 	if (data == NULL) { printf("Data File cannot be opened for reading. Exiting . . .\n"); exit(1); }
@@ -17,11 +19,10 @@ int main (void) {
 	char *key; int val;
 	int i,j,id = 0,dbSize = 4; // will also serve as count of documents
 	int count = 0; // for counting function
-	int x, eligible; // for query function - "eligible" marks whether a document meets any conditions
 
 	Field **newAttrList;
 	Document *newDoc;
-	Document **db = malloc(sizeof(Document *) * HASH),**temp;
+	Document **db = malloc(sizeof(Document *) * HASH);
 	if (db == NULL) {
 		printf("Allocation of database failed.\nExiting . . .\n");
 		exit(1);
@@ -87,7 +88,7 @@ int main (void) {
 	/* Process the QUERIES.TXT file */
 	curr = readLine(query);
 	char *collection,*operation,*origQuery,*version,*fieldName,*threshold,*queryOp;
-	PList *conditions,*projection; Pnode *iter;
+	PList *conditions,*projection;
 
 	while(!feof(query)) {
 		//while (strlen(curr) == 0 && !(feof(query))) curr = readLine(query);
@@ -106,8 +107,8 @@ int main (void) {
 				version = NULL;
 printf("=====QUERY=====\n");
 				conditions = newPList();
-				while (curr[0] != ',') {
-						if (curr[0] == ']') break;
+				while (curr[0] != ',' && curr[0] != ']') {
+						if (curr[0] == ']') { break; }
 						else if (curr[0] == ' ') curr++; // Get rid of the space that comes from th
 						// Get the field, queryOp, and value for each condition
 						queryOp = strpbrk(curr,"<=>"); // Operation is being reused here
@@ -138,20 +139,18 @@ printf("=====QUERY=====\n");
 							default:
 								printf("Error! '%c' is not a valid queryOp!\n",operation[0]);
 							}
-						
-				
 						insertParam(conditions,fieldName,queryOp,atoi(threshold));
 						curr = strtok(NULL,"");
 						}
 
 
 				
-				printf("Time to process the projection\n");
 				projection = newPList();
 				
 				//curr = strtok(NULL,"]");
 
 				curr += 3;
+				if (curr[0] == '[') curr++;
 				while (curr && curr[0] != ')' && curr[0] != ',') {
 					fieldName = strtok(myStrdup(curr),",]");
 					if (fieldName[0] == ' ') fieldName++;
@@ -159,54 +158,45 @@ printf("=====QUERY=====\n");
 					curr = strtok(NULL,"");
 					}
 
-				printf("Done processing projection.\n");
 				if (curr[0] == ',') { 
-					printf("Process the Versions, too!\n"); 
 					curr += 3;
-					if (curr[0] == ']') printf("ALL VERSIONS\n");
-					else { curr = strtok(curr,"]"); printf("Only the last %d versions.\n",atoi(curr)); }
+					if (curr[0] == ']') version = NULL;
+					else { curr = strtok(curr,"]"); version = curr; }
 			
 					}
-				else { version = "0"; }
+				else { version = "1"; }
 				
 				
-
-				for (i = 0; i < HASH; i++) {
-					iter1 = db[i];
-					while (iter1 != NULL) {
-						iter2 = iter1;
-						while (iter2 != NULL) {
-									iter = conditions->head;
-									/* Check the document values against each parameter */
-									x = 1,eligible = 0;;
-
-									while (iter != NULL && x == 1) {
-										if (lookup(iter1->attributes,iter->field) == NULL) { iter = iter->next; continue; }
-										else {
-											x = compareIntegers(lookup(iter2->attributes,iter->field)->value,iter->value,iter->operation);
-											}
-										if (x == 1) eligible = 1; // field must exist, x must satisfy /a/ condition
-										iter = iter->next;
-										}
-
-									if (iter != NULL) { iter2 = iter2->next; continue; }
-									if (eligible == 1) {
-										iter = projection->head;
-										printf("vn: %d ",iter2->version);
-										while (iter != NULL) {
-											if (lookup(iter2->attributes,iter->field) != NULL) 
-												printf("%s:%d ",iter->field,lookup(iter2->attributes,iter->field)->value);
-											iter = iter->next;
-											}
-										printf("\n");
-
-										}
-									iter2 = iter2->older;
+				// All Versions
+				if (version == NULL) {
+					for (i = 0; i < HASH; i++) {
+						iter1 = db[i];
+						while (iter1 != NULL) {
+							iter2 = iter1;
+							while (iter2 != NULL) {
+								processQuery(iter2,conditions,projection);
+								iter2 = iter2->older;
 								}
 							iter1 = iter1->next;
 							}
-					
 						}
+					}
+
+				// Last <Version> Versions
+				else {
+					for (i = 0; i < HASH; i++) {
+						iter1 = db[i];
+						while (iter1 != NULL) {
+							iter2 = iter1;
+							for (j = 0; j < atoi(version); j++) {
+								if (iter2 == NULL) break;
+								processQuery(iter2,conditions,projection);
+								iter2 = iter2->older;
+								}
+							iter1 = iter1->next;
+							}
+						}
+					}
 				
 			
 
@@ -216,11 +206,19 @@ printf("=====QUERY=====\n");
 
 
 			else if (strcmp(operation, "count") == 0) {
+				version = NULL;
 				count = 0;
 				curr = operation;
 				curr = myStrdup(strtok(NULL,"[]"));
 
-				version = strtok(NULL,"[]), ");
+				//version = strtok(NULL,"[]), "); 
+
+				version = strtok(NULL,"]), ");
+				if (version) version++;
+
+				if (version == NULL) version = "0";
+				else if (strlen(version) == 0) version = "ALL";
+
 				
 				for (i = 0; i < HASH; i++) { 
 					if (db[i] == NULL) continue;
@@ -230,7 +228,7 @@ printf("=====QUERY=====\n");
 
 						/* Look through past version */
 						iter2 = iter1->older;
-						if (version == NULL) {
+						if (strcmp(version,"ALL") == 0) {
 							while (iter2 != NULL) {
 								if (lookup(iter2->attributes,curr) != NULL) { ++count; }
 								iter2 = iter2->older;
@@ -248,7 +246,6 @@ printf("=====QUERY=====\n");
 						}
 					}
 
-
 				if (count > 0) printf("count_%s: %d\n",curr,count);
 				}
 
@@ -261,9 +258,29 @@ printf("=====QUERY=====\n");
 
 
 			else if (strcmp(operation, "insert") == 0) {
-				printf("INSERT not implemented.\n");
-				// Maybe start reading key-value pairs, inserting them into a new document?
-				// At the end, just up the id number
+			
+				newAttrList = malloc(sizeof(Field *) * HASH);
+
+				curr = operation;
+				curr = strtok(NULL,": ");
+				while (curr != NULL) {
+					fieldName = myStrdup(curr);
+					curr = strtok(NULL,") ");
+					val = atoi(curr);
+					install(newAttrList,fieldName,val);
+					curr = strtok(NULL,": ");
+					}
+
+				if (lookup(newAttrList,"DocID") == NULL) {
+					printf("ERROR: No DocID specified for new document.\nExiting . . .\n");
+					exit(1);
+					}
+				
+				install(newAttrList,"sysid",id); id++;
+				newDoc = newDocument(lookup(newAttrList,"DocID")->value);
+				newDoc->attributes = newAttrList;
+				
+				insertDocument(db,newDoc);
 				}
 
 			else { 
@@ -298,5 +315,49 @@ printf("=====QUERY=====\n");
 	}
 
 
+void processQuery(Document *currDoc,PList *conditions,PList *projection) {
+	Pnode *iter;
+	int x = 1,eligible = 0,vn = 0;
+	iter = conditions->head;
+	// Check the document values against each parameter 
 
-//void processQuery(Document *iter2,PList *conditions,PList *projection) {
+	if (conditions->head == NULL) {
+		eligible = 1;
+		}
+
+	else {
+		while (iter != NULL && x == 1) {
+
+	    	if (lookup(currDoc->attributes,iter->field) == NULL) { iter = iter->next; continue; }
+
+			else {
+			    x = compareIntegers(lookup(currDoc->attributes,iter->field)->value,iter->value,iter->operation);
+				eligible = x;
+				}
+	
+				if (x == 1) eligible = 1; // field must exist, x must satisfy /a/ condition
+				iter = iter->next;
+				}
+
+		if (iter != NULL) { currDoc = currDoc->next; return; }
+		}
+
+
+
+	if (eligible == 1) {
+		iter = projection->head;
+
+		while (iter != NULL) {
+			if (lookup(currDoc->attributes,iter->field) != NULL) {
+				if (vn == 0) { printf("vn:%d ",currDoc->version); vn = 1; }
+
+				printf("%s:%d ",iter->field,lookup(currDoc->attributes,iter->field)->value);
+				}
+			iter = iter->next;
+			}
+		printf("\n");
+		}
+
+	return;
+    }
+
