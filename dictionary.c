@@ -11,7 +11,7 @@
 #include "dictionary.h"
 
 
-// DICTIONARY FUNCTIONS
+/* DICTIONARY FUNCTIONS */
 
 unsigned hash(char *s) {
 	unsigned hashval;
@@ -55,6 +55,7 @@ Field *install(Field **dict, char *key,int value) {
 	return np;
 	}
 
+
 char *myStrdup(char *s) {
 	char *p;
 	p = (char *) malloc(strlen(s)+1);
@@ -62,3 +63,56 @@ char *myStrdup(char *s) {
 
 	return p;
 	}
+
+
+
+/* DOCUMENT / DATABASE FUNCTIONS */
+Document *newDocument(int docID) {
+	Document *new = malloc(sizeof(Document));
+
+	new->docID = docID;
+	new->version = 1;
+
+	// Hash it into the database
+
+	new->attributes = NULL;
+	new->next = NULL;
+	new->older = NULL;
+	
+	return new;
+	}
+
+
+void insertDocument(Document **db,Document *newDoc) {
+	unsigned hashval = newDoc->docID % HASH;
+	Document *iter,*prev = NULL; // prev stores tail value
+
+	iter = db[hashval];
+
+	/* If there's no prior entry, make one */
+	if (iter == NULL) {
+		db[hashval] = newDoc;
+		return;
+		}
+
+	while (iter != NULL) {
+		if (iter->docID == newDoc->docID) {
+			newDoc->next = iter->next;
+			newDoc->older = iter;
+			newDoc->version = newDoc->older->version + 1;
+
+			// Update database to point to newDoc
+			if (prev == NULL) db[hashval] = newDoc;
+			else prev->next = newDoc;
+			return;
+			}
+
+		prev = iter;
+		iter = iter->next;
+		}
+
+		prev->next = newDoc;
+
+	return;
+	}
+		

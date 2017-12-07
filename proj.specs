@@ -1,0 +1,98 @@
+SAMPLE DATA FILE
+================
+-Write a C program to implement operations required to process NoSQL queries on data
+-The data corresponds to a collection of documents
+-PARSE -> PROCESS -> PRINT
+-SELECT, PROJECTION, AGGREGATE, INSERT
+
+
+DATA
+====
+-Collection will be named "final"
+-In data file, each line represents a different document
+-Names of field are included along with value (Fields can have varying name and value)
+-Assume all values are integer (STRING-INTEGER PAIRS)
+-Input data will have key field name DocID
+-Generate sysid field for each document and a version number
+-Version number must be named vn
+-Version numbers start with 1 and AUTO_INCREMENT (if same DovID occurs more than once)
+-Larger VN is more recent
+-Use order of input data to determine VN
+
+-You MUST read from "data.txt"
+
+
+QUERIES
+=======
+-Will be read in from "queries.txt"
+-The NoSQL query is similar to Mongo
+
+Operation 1: QUERY
+------------------
+-Returns values to fields specified for document that satisfy the specified conditions for versions indicated
+
+final.query([condition], [field], [version])
+
+condition - fieldName comparisonOp value   (e.g. "Age > 30")
+	-Zero or more select conditions
+	-Zero conditions is [] and means include all documents
+	-If there is more than one condition, will be separated by commas
+	-Potential comparisons include < / > / = / >= / <= / <>
+
+field - fieldName
+	-Zero or more field names separated by commas
+	-Zero fields is denoted as [] and means _all_ fields
+	-System generated vn field should always be displayed
+	-sysid only displayed if requested
+	-If a document does not have one of the fields in fieldName list, but has other fields, it should be included
+	-If it has none of the fields, it should be left out.
+
+version - integer
+	-If no version is indicated, most recent version is displayed by default.
+	-Brackets don't have to be included if default of most recent version is requested (???)
+	-However, including an integer shows how many versions should be displayed
+	-To list all versions, include []
+
+final.query([], [], []) means "include all documents, all fields, and all version)
+
+final.query() just returns all documents for current version
+
+-No error if no match. Just output nothing.
+-If "query" is misspelled, print an error.
+
+
+
+
+Operation 2: COUNT
+------------------
+COUNT: An aggregate function which computes the count of the specified field for the versions indicated
+
+final.count([field], [version]) 
+
+field is one fieldName
+version - use the same rules as above
+
+final.count([Manager])
+	count_Manager: 300 // (using most recent version)
+
+-If no such field, return nothing. Obviously, don't includ document in calc if it doesn't contain field specifiedGA
+
+
+Operation 3: SORT
+-----------------
+SORT: A function which sorts documents in ascending order of field specified for versions indicated.
+There will only be one field, and it can be sysid or vn. Print all fields and versions specified.
+
+final.sort([field], [version])
+
+field is one fieldName
+version - same rules
+
+final.sort([Age], [])
+
+
+Operation 4: INSERT
+-------------------
+INSERT: A method which inserts new documents into database. If value for key field does not exit, vn = 1. Else, update vn.
+
+The document will then be available for subsequent queries and functions.

@@ -1,0 +1,83 @@
+#50
+DocID:50 Spec1:61 Gender:2 Salary:72800 / VERSION 2
+DocID:50 Spec1:61 Gender:2 Salary:68800  / VERSION 1
+
+#5
+Salary:66200 DocID:5 Dept:6 State:40 City:2 / VERSION 2
+	Salary:66200 DocID:5 Spec1:96 Dept:5 State:40 City:2 / VERSION 1
+
+#40
+Salary:84600 DocID:40 State:48 Spec1:46 Gender:2 Dept:4 / VERSION 1
+
+#1
+Dept:4 Age:98 DocID:1 / #1 VERSION 1
+
+#4 
+Dept:4 DocID:4 Salary:181800 Age:36 / VERSION 4
+Dept:4 DocID:4 Salary:185800 Age:35 /  VERSION 3
+Dept:4 DocID:4 Salary:181800 Age:36 / VERSION 2
+Dept:4 DocID:4 Salary:181800 Age:35 / VERSION  1
+
+#10
+DocID:10 Spec1:66 Salary:56300 City:1 Age:54 Gender:1 / VERSION 1
+
+#30
+DocID:30 City:4 Salary:96700 Dept:3 / #30 VERSION 3
+	DocID:30 City:3 Salary:96700 Dept:3 / VERSION 2
+	DocID:30 City:2 Salary:96700 Dept:3 / VERSION 1
+
+#3
+State:10 Spec1:71 DocID:3 / VERSION 1
+
+#70
+DocID:70 Gender:2 Salary:148500 Dept:1 / VERSION 1
+
+#7
+Age:77 Gender:1 DocID:7 City:1 / VERSION 1
+
+#80
+Dept:5 State:44 DocID:80 / VERSION 1
+
+#8
+Gender:1 DocID:8 City:2 / VERSION 1
+
+#555
+DocID:555 Gender:2 / VERSION2
+DocID:555 City:1 Age:76 Salary:170000 / VERSION 1
+
+#55
+Age:28 State:15 DocID:55 Spec1:76 / VERSION 1
+
+#666
+State:7 Age:97 Spec1:56 Gender:2 Salary:181800 Dept:2 DocID:666 City:2 / VERSION 1
+
+#66
+DocID:66 Salary:130300 Spec1:41 Age:91 / VERSION 1
+
+#780
+DocID:780 Age:56 / VERSION 1
+
+#78 
+State:16 Spec1:26 Dept:3 DocID:78 / VERSION 1
+
+#540
+DocID:540 Gender:2 Salary:122000 / VERSION 1
+
+#54
+Salary:176600 Dept:1 DocID:54 / VERSION 1
+
+#570
+DocID:570 City:1 Age:34 Gender:2 / VERSION 1
+
+#57
+DocID:57 Dept:2 / VERSION 1
+
+#430
+Salary:47300 State:16 Gender:2 DocID:430 Children:4 / VERSION 2
+Salary:47300 State:16 Gender:2 DocID:430 / VERSION 1
+
+#43
+DocID:43 Dept:4
+
+#620
+Gender:2 Spec1:26 Age:78 DocID:620 / VERSION 1
