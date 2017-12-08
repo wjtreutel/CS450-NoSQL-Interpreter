@@ -1,11 +1,30 @@
-final.query([Dept=4], [sysid, DocID, Age])
-final.query([Dept=4], [sysid, DocID, Age], [2])
-final.query([Dept=4, Age>35], [DocID, Age])
-final.query([Dept=4, Age>35], [DocID, Age], [])
-final.query([age=35], [DocID])
-final.count([Dept], [])
-final.count([Dept])
-final.sort([Age])
-final.sort([Age], [3])
-final.query([], [sysid, Gender, Salary, City])
+final.query([something = 2], [ ], [ ])
+final.query([something = 1], [ ], [ ])
+
+final.insert(DocID:3 something:3 what:1)
+
+final.query([somethingg = 3, DocID = 3], [what, DocID], [ 1 ])
+
+final.query([ ], [DocID], [])
+
+final.query([Manager=555], [sysid, DocID, Dept])
+
+final.query([Age<30, Manager=555], [], [2])
+
 final.query([], [], [])
+
+final.count([Age])
+
+final.count([Manager])
+
+final.count([Manager], [])
+
+final.count([Manager], [2])
+
+final.count([superman], [ 1 ])
+
+final.sort([Manager], [2])
+
+final.sort([something])
+
+final.sort([something], [])

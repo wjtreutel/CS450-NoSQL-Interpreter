@@ -17,7 +17,7 @@ int main (void) {
 
 	char *curr;
 	char *key; int val;
-	int i,j,id = 0,dbSize = 4; // will also serve as count of documents
+	int i,j,id = 1,dbSize = 4; // will also serve as count of documents
 	int count = 0; // for counting function
 
 	Field **newAttrList;
@@ -36,6 +36,7 @@ int main (void) {
 
 	// Read in a new document
 	while (!feof(data)) {
+		if (strcmp(curr,"") == 0) { if (!feof(data)) curr = readLine(data); continue; }
 		newAttrList = malloc(sizeof(Field *) * HASH);
 
 		install(newAttrList,"sysid",id);
@@ -83,7 +84,6 @@ int main (void) {
 			}
 		*/
 			
-//!!!!!!!!!!! 
 
 	/* Process the QUERIES.TXT file */
 	curr = readLine(query);
@@ -91,7 +91,7 @@ int main (void) {
 	PList *conditions,*projection;
 
 	while(!feof(query)) {
-		//while (strlen(curr) == 0 && !(feof(query))) curr = readLine(query);
+		if (strcmp(curr,"") == 0) { if (!feof(query)) curr = readLine(query); continue; }
 		origQuery = myStrdup(curr);
 		printf("%s\n",curr);
 		
@@ -109,19 +109,27 @@ int main (void) {
 				version = NULL;
 				conditions = newPList(); projection = newPList();
 				while (curr[0] != ',' && curr[0] != ']' && curr[0] != '\0') {
-						if (curr[0] == ']') { break; }
-						else if (curr[0] == ' ') curr++; // Get rid of the space that comes from th
+						while (curr[0] == ' ') curr++; // Get rid of preceding whitespace
+						if (curr[0] == ']') break; 
 						// Get the field, queryOp, and value for each condition
 						queryOp = strpbrk(curr,"<=>"); // Operation is being reused here
 						fieldName = myStrdup(curr);
 						fieldName = strtok(fieldName,"<=>");
 						threshold = myStrdup(fieldName);
 						threshold = strtok(NULL,",] ");
-
+					
+						/* Remove leading and trailing whitespace from fieldName */
+						while (fieldName[0] == ' ') fieldName++;
+						for (i = strlen(fieldName) - 1; i > 0; i--) {
+							if (fieldName[i] == ' ') fieldName[i] = '\0';
+							else break;
+							}
+						//while (fieldName[strlen(fieldName) - 1] == ' ') fieldName[strlen(fieldName) - 1] = '\0';
 
 						if (threshold == NULL) { printf("SyntaxError: %s is not a valid condition.\n",curr); break; }
 
 						// Find out what the queryOp is
+						while (queryOp[0] == ' ') queryOp++;
 						switch (queryOp[0]) {
 							case '<':
 								if (queryOp[1] == '=') 
@@ -142,6 +150,7 @@ int main (void) {
 							default:
 								printf("Error! '%c' is not a valid queryOp!\n",operation[0]);
 							}
+printf("INSERTING CONDITION: '%s' '%s' '%s'\n",fieldName,queryOp,threshold);
 						insertParam(conditions,fieldName,queryOp,atoi(threshold));
 						curr = strtok(NULL,"");
 						}
@@ -157,8 +166,11 @@ int main (void) {
 						if (curr[0] == '[') curr++;
 						while (curr && curr[0] != ')' && curr[0] != ',' && curr[0] !=']') {
 							fieldName = strtok(myStrdup(curr),",]");
-							if (fieldName[0] == ' ') fieldName++;
-							insertParam(projection,fieldName,NULL,0);
+							while (fieldName[0] == ' ') fieldName++;
+							if (fieldName[0] == '\0') break;
+							if (strcmp(fieldName,"sysid") == 0) addToFront(projection,fieldName);
+							else insertParam(projection,fieldName,NULL,0);
+							printf("PROJECTION HEAD: %s\n",projection->head->field);
 							curr = strtok(NULL,"");
 							}
 
@@ -205,13 +217,12 @@ int main (void) {
 						}
 					}
 				
-			
-
 				//freePList(conditions);
 				}
 
 
 
+			/* COUNT FUNCTION */
 			else if (strcmp(operation, "count") == 0) {
 				version = NULL;
 				count = 0;
@@ -255,13 +266,13 @@ int main (void) {
 				}
 
 
-
+			/* SORT FUNCTION */
 			else if (strcmp(operation, "sort") == 0) {
 				printf("SORT not implemented.\n");
 				}
 
 
-
+			/* INSERT FUNCTION */
 			else if (strcmp(operation, "insert") == 0) {
 			
 				newAttrList = malloc(sizeof(Field *) * HASH);
@@ -357,11 +368,12 @@ int processQuery(Document *currDoc,PList *conditions,PList *projection) {
 
 		if (iter == NULL) { 
 			printf("vn: %d ",currDoc->version);
+			printf("sysid: %03d ",lookup(currDoc->attributes,"sysid")->value);
 			attr = currDoc->attributes;
 			for (i = 0; i < HASH; i++) {
 				curr = attr[i];
 				while (curr != NULL) {
-					printf("%s:%d ",curr->key,curr->value);
+					if (strcmp(curr->key,"sysid") != 0) printf("%s:%d ",curr->key,curr->value);
 					curr = curr->next;
 					}
 				}
@@ -376,9 +388,12 @@ int processQuery(Document *currDoc,PList *conditions,PList *projection) {
 			//if (iter->field == NULL) printf("NO FIELD\n");
 
 			if (lookup(currDoc->attributes,iter->field) != NULL) {
-				if (vn == 0) { printf("vn:%d ",currDoc->version); vn = 1; }
+				if (vn == 0) { printf("vn: %d ",currDoc->version); vn = 1; }
 
-				printf("%s:%d ",iter->field,lookup(currDoc->attributes,iter->field)->value);
+				if (strcmp(iter->field,"sysid") == 0) 
+					printf("sysid: %03d",lookup(currDoc->attributes,"sysid")->value);
+				else 
+					printf("%s: %d ",iter->field,lookup(currDoc->attributes,iter->field)->value);
 				}
 			iter = iter->next;
 			}

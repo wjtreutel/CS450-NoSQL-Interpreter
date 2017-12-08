@@ -64,3 +64,32 @@ void insertParam(PList *list,char *field,char *op,int value) {
 
 	return;
 	}
+
+
+void addToFront(PList *list,char *field) {
+	Pnode *new = malloc(sizeof(Pnode));
+
+	if (new == 0) {
+		printf("ERROR: Could not allocate new parameter node. Exiting . . .\n");
+		exit(1);
+		}
+
+	new->field = field;
+	new->operation = NULL;
+	new->value = 0;
+
+	if (list->size == 0) list->head = list->tail = new;
+
+	else if (list->head == list->tail) {
+		new->next = list->head;
+		list->tail = list->head;
+		list->head = new;
+		}
+
+	else {
+		new->next = list->head;
+		list->head = new;
+		}
+
+	return;
+	}
