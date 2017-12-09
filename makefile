@@ -18,3 +18,6 @@ test:
 
 clean: 
 	rm *.o spice
+
+slim: 
+	make; rm *.o

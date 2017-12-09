@@ -151,20 +151,21 @@ int main (void) {
 							curr = strtok(NULL,"");
 							}
 
-						if (curr[0] == ']') curr++;
+						while (curr[0] == ' ' || curr[0] == ']') curr++;
 						if (curr[0] == ',') { 
 							curr += 3;
 							if (curr[0] == ']') version = NULL;
 							else { curr = strtok(curr,"]"); version = curr; }
 					
 							}
-						else { version = "1"; }
+						else { version = "CURR"; }
 					}
 				else version = "1";
-				
+
 
 				// All Versions
-				if (version == NULL) {
+				//if (version == NULL) {
+				if (0) {
 					for (i = 0; i < HASH; i++) {
 						iter1 = db[i];
 						while (iter1 != NULL) {
@@ -184,10 +185,26 @@ int main (void) {
 						iter1 = db[i];
 						while (iter1 != NULL) {
 							iter2 = iter1;
-							j = 0;
-							while (iter2 != NULL && j < atoi(version)) {
-								j += processQuery(iter2,conditions,projection);
-								iter2 = iter2->older;
+							if (version && strcmp(version,"CURR") == 0) {
+								while (iter2 != NULL) {
+									if (processQuery(iter2,conditions,projection)) break;
+									iter2 = iter2->older;
+									}
+								}
+							else if (version != NULL) {
+								j = 0;
+								//while (iter2 != NULL && j < atoi(version)) {
+								for (j = 0; j < atoi(version); j++) {
+									if (iter2 == NULL) break;
+									j += processQuery(iter2,/conditions,projection);
+									iter2 = iter2->older;
+									}
+								}
+							else {
+								while (iter2 != NULL) {
+									processQuery(iter2,conditions,projection);
+									iter2 = iter2->older;
+									}
 								}
 							iter1 = iter1->next;
 							}
@@ -217,10 +234,11 @@ int main (void) {
 					if (db[i] == NULL) continue;
 					iter1 = db[i];
 					while (iter1 != NULL) {
-						if (lookup(iter1->attributes,curr) != NULL) { ++count; }
+						//if (lookup(iter1->attributes,curr) != NULL) { ++count; }
 
 						/* Look through past version */
-						iter2 = iter1->older;
+						//iter2 = iter1->older;
+						iter2 = iter1;
 						if (strcmp(version,"ALL") == 0) {
 							while (iter2 != NULL) {
 								if (lookup(iter2->attributes,curr) != NULL) { ++count; }
@@ -255,98 +273,12 @@ int main (void) {
 				version = strtok(NULL,"]), ");
 				if (version) version++;
 
-				if (version == NULL) version = "0";
+				if (version == NULL) version = "1";
 				else if (strlen(version) == 0) version = "ALL";
 
 
 				// FIND MIN AND MAX
-				for (i = 0; i < HASH; i++) { 
-					if (db[i] == NULL) continue;
-					iter1 = db[i];
-					while (iter1 != NULL) {
-						if (lookup(iter1->attributes,curr) != NULL) { 
-							if (lookup(iter1->attributes,curr)->value < min) 
-								min = lookup(iter1->attributes,curr)->value;
-							if (lookup(iter1->attributes,curr)->value > max) 
-								max = lookup(iter1->attributes,curr)->value;
-							}
-						
 
-						/* Look through all past versions */
-						iter2 = iter1->older;
-						if (strcmp(version,"ALL") == 0) {
-							while (iter2 != NULL) {
-								if (lookup(iter2->attributes,curr) != NULL) {
-									if (lookup(iter2->attributes,curr)->value < min) 
-										min = lookup(iter2->attributes,curr)->value;
-									if (lookup(iter2->attributes,curr)->value > max) 
-										max = lookup(iter2->attributes,curr)->value;
-									}
-								iter2 = iter2->older;
-								}
-							}
-
-						else {
-							//for (j = 1; j < atoi(version); j++) {
-							while (iter2 != NULL && j < atoi(version)) {
-								if (iter2 == NULL) break;
-								if (lookup(iter2->attributes,curr) != NULL) {
-									if (lookup(iter2->attributes,curr)->value < min) 
-										min = lookup(iter2->attributes,curr)->value;
-									if (lookup(iter2->attributes,curr)->value > max) 
-										max = lookup(iter2->attributes,curr)->value;
-										++j;
-									}
-								iter2 = iter2->older;
-								}
-							}
-						iter1 = iter1->next;
-						}
-				}
-
-				conditions = newPList();
-				projection = newPList();
-
-			
-				// Loop between min and max, sweeping the database every time and printing if (lookup) == i
-				for (i = min; i <= max; i++) {
-					for (j = 0; j < HASH; j++) { 
-						if (db[j] == NULL) continue;
-						iter1 = db[j];
-						while (iter1 != NULL) {
-							if (lookup(iter1->attributes,curr) != NULL) { 
-								if (lookup(iter1->attributes,curr)->value == i) processQuery(iter1,conditions,projection);
-								}
-						
-		
-							/* Look through all past versions */
-							iter2 = iter1->older;
-							if (strcmp(version,"ALL") == 0) {
-								while (iter2 != NULL) {
-									if (lookup(iter2->attributes,curr) != NULL) {
-										if (lookup(iter2->attributes,curr)->value == i) processQuery(iter2,conditions,projection);
-										}
-									iter2 = iter2->older;
-									}
-								}
-	
-							else {
-								//for (k = 1; k < atoi(version); k++) {
-								while (iter2 != NULL && k < atoi(version)) {
-									printf("Checking another version of #%d...\n",iter2->docID);
-									if (iter2 == NULL) break;
-									if (lookup(iter2->attributes,curr) != NULL) {
-										if (lookup(iter2->attributes,curr)->value == i) processQuery(iter2,conditions,projection);
-										else printf("MISS!\n");
-										k++;
-										}
-									iter2 = iter2->older;
-									}
-								}
-							iter1 = iter1->next;
-							}
-					}
-				}
 			}
 
 
