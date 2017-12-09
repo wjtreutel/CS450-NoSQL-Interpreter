@@ -148,7 +148,6 @@ int main (void) {
 							if (fieldName[0] == '\0') break;
 							if (strcmp(fieldName,"sysid") == 0) addToFront(projection,fieldName);
 							else insertParam(projection,fieldName,NULL,0);
-							printf("PROJECTION HEAD: %s\n",projection->head->field);
 							curr = strtok(NULL,"");
 							}
 
@@ -228,10 +227,12 @@ int main (void) {
 								iter2 = iter2->older;
 								}
 							}
+
 						else {
-							for (j = 1; j < atoi(version); j++) {
+							//for (j = 1; j < atoi(version); j++) {
+							while (iter2 !=  NULL && j < atoi(version))  {
 								if (iter2 == NULL) break;
-								if (lookup(iter2->attributes,curr) != NULL) { ++count; }
+								if (lookup(iter2->attributes,curr) != NULL) { ++count; ++j; }
 								iter2 = iter2->older;
 								}
 							}
@@ -271,7 +272,7 @@ int main (void) {
 							}
 						
 
-						/* Look through past version */
+						/* Look through all past versions */
 						iter2 = iter1->older;
 						if (strcmp(version,"ALL") == 0) {
 							while (iter2 != NULL) {
@@ -286,13 +287,15 @@ int main (void) {
 							}
 
 						else {
-							for (j = 1; j < atoi(version); j++) {
+							//for (j = 1; j < atoi(version); j++) {
+							while (iter2 != NULL && j < atoi(version)) {
 								if (iter2 == NULL) break;
 								if (lookup(iter2->attributes,curr) != NULL) {
 									if (lookup(iter2->attributes,curr)->value < min) 
 										min = lookup(iter2->attributes,curr)->value;
 									if (lookup(iter2->attributes,curr)->value > max) 
 										max = lookup(iter2->attributes,curr)->value;
+										++j;
 									}
 								iter2 = iter2->older;
 								}
@@ -316,7 +319,7 @@ int main (void) {
 								}
 						
 		
-							/* Look through past version */
+							/* Look through all past versions */
 							iter2 = iter1->older;
 							if (strcmp(version,"ALL") == 0) {
 								while (iter2 != NULL) {
@@ -328,10 +331,14 @@ int main (void) {
 								}
 	
 							else {
-								for (k = 1; k < atoi(version); k++) {
+								//for (k = 1; k < atoi(version); k++) {
+								while (iter2 != NULL && k < atoi(version)) {
+									printf("Checking another version of #%d...\n",iter2->docID);
 									if (iter2 == NULL) break;
 									if (lookup(iter2->attributes,curr) != NULL) {
 										if (lookup(iter2->attributes,curr)->value == i) processQuery(iter2,conditions,projection);
+										else printf("MISS!\n");
+										k++;
 										}
 									iter2 = iter2->older;
 									}
@@ -463,7 +470,7 @@ int processQuery(Document *currDoc,PList *conditions,PList *projection) {
 				if (vn == 0) { printf("vn: %d ",currDoc->version); vn = 1; }
 
 				if (strcmp(iter->field,"sysid") == 0) 
-					printf("sysid: %03d",lookup(currDoc->attributes,"sysid")->value);
+					printf("sysid: %03d ",lookup(currDoc->attributes,"sysid")->value);
 				else 
 					printf("%s: %d ",iter->field,lookup(currDoc->attributes,iter->field)->value);
 				}
