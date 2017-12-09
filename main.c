@@ -5,6 +5,7 @@
 #include "tree.h"
 #include "dictionary.h"
 #include "list.h"
+#define INT_MAX 2147483647
 
 int processQuery(Document *,PList *,PList *);
 
@@ -17,7 +18,7 @@ int main (void) {
 
 	char *curr;
 	char *key; int val;
-	int i,j,id = 1,dbSize = 4; // will also serve as count of documents
+	int i,j,k,id = 1,dbSize = 4; // will also serve as count of documents
 	int count = 0; // for counting function
 
 	Field **newAttrList;
@@ -61,34 +62,13 @@ int main (void) {
 		}
 
 
-		Document *iter1,*iter2;
-		// DOCUMENT SCANNER LOOP
-		/*
-		for (i = 0; i < HASH; i++) { 
-			if (db[i] == NULL) continue;
-			iter1 = db[i];
-			while (iter1 != NULL) {
-				printf("ID: %d (vn: %d)\n",iter1->docID,iter1->version);
-				iter2 = iter1->older;
-
-				int z = 18;
-				//while (iter2 != NULL) {
-				for (j = 0; j < z; j++) {
-					if (iter2 == NULL) break;
-					printf("\tID: %d (vn: %d)\n",iter2->docID,iter2->version);
-					iter2 = iter2->older;
-					}
-				iter1 = iter1->next;
-
-				}
-			}
-		*/
-			
 
 	/* Process the QUERIES.TXT file */
+	Document *iter1,*iter2;
 	curr = readLine(query);
 	char *collection,*operation,*origQuery,*version,*fieldName,*threshold,*queryOp;
 	PList *conditions,*projection;
+	int min = INT_MAX,max = 0; // for sort
 
 	while(!feof(query)) {
 		if (strcmp(curr,"") == 0) { if (!feof(query)) curr = readLine(query); continue; }
@@ -150,7 +130,7 @@ int main (void) {
 							default:
 								printf("Error! '%c' is not a valid queryOp!\n",operation[0]);
 							}
-printf("INSERTING CONDITION: '%s' '%s' '%s'\n",fieldName,queryOp,threshold);
+
 						insertParam(conditions,fieldName,queryOp,atoi(threshold));
 						curr = strtok(NULL,"");
 						}
@@ -159,8 +139,6 @@ printf("INSERTING CONDITION: '%s' '%s' '%s'\n",fieldName,queryOp,threshold);
 				
 				projection = newPList();
 				
-				//curr = strtok(NULL,"]");
-
 				if (curr[0] != '\0') {
 						curr += 3;
 						if (curr[0] == '[') curr++;
@@ -268,8 +246,101 @@ printf("INSERTING CONDITION: '%s' '%s' '%s'\n",fieldName,queryOp,threshold);
 
 			/* SORT FUNCTION */
 			else if (strcmp(operation, "sort") == 0) {
-				printf("SORT not implemented.\n");
+				count = 0; min = INT_MAX; max = 0;
+				version = NULL;
+				curr = operation;
+				curr = myStrdup(strtok(NULL,"[]"));
+
+				version = strtok(NULL,"]), ");
+				if (version) version++;
+
+				if (version == NULL) version = "0";
+				else if (strlen(version) == 0) version = "ALL";
+
+
+				// FIND MIN AND MAX
+				for (i = 0; i < HASH; i++) { 
+					if (db[i] == NULL) continue;
+					iter1 = db[i];
+					while (iter1 != NULL) {
+						if (lookup(iter1->attributes,curr) != NULL) { 
+							if (lookup(iter1->attributes,curr)->value < min) 
+								min = lookup(iter1->attributes,curr)->value;
+							if (lookup(iter1->attributes,curr)->value > max) 
+								max = lookup(iter1->attributes,curr)->value;
+							}
+						
+
+						/* Look through past version */
+						iter2 = iter1->older;
+						if (strcmp(version,"ALL") == 0) {
+							while (iter2 != NULL) {
+								if (lookup(iter2->attributes,curr) != NULL) {
+									if (lookup(iter2->attributes,curr)->value < min) 
+										min = lookup(iter2->attributes,curr)->value;
+									if (lookup(iter2->attributes,curr)->value > max) 
+										max = lookup(iter2->attributes,curr)->value;
+									}
+								iter2 = iter2->older;
+								}
+							}
+
+						else {
+							for (j = 1; j < atoi(version); j++) {
+								if (iter2 == NULL) break;
+								if (lookup(iter2->attributes,curr) != NULL) {
+									if (lookup(iter2->attributes,curr)->value < min) 
+										min = lookup(iter2->attributes,curr)->value;
+									if (lookup(iter2->attributes,curr)->value > max) 
+										max = lookup(iter2->attributes,curr)->value;
+									}
+								iter2 = iter2->older;
+								}
+							}
+						iter1 = iter1->next;
+						}
 				}
+
+				conditions = newPList();
+				projection = newPList();
+
+			
+				// Loop between min and max, sweeping the database every time and printing if (lookup) == i
+				for (i = min; i <= max; i++) {
+					for (j = 0; j < HASH; j++) { 
+						if (db[j] == NULL) continue;
+						iter1 = db[j];
+						while (iter1 != NULL) {
+							if (lookup(iter1->attributes,curr) != NULL) { 
+								if (lookup(iter1->attributes,curr)->value == i) processQuery(iter1,conditions,projection);
+								}
+						
+		
+							/* Look through past version */
+							iter2 = iter1->older;
+							if (strcmp(version,"ALL") == 0) {
+								while (iter2 != NULL) {
+									if (lookup(iter2->attributes,curr) != NULL) {
+										if (lookup(iter2->attributes,curr)->value == i) processQuery(iter2,conditions,projection);
+										}
+									iter2 = iter2->older;
+									}
+								}
+	
+							else {
+								for (k = 1; k < atoi(version); k++) {
+									if (iter2 == NULL) break;
+									if (lookup(iter2->attributes,curr) != NULL) {
+										if (lookup(iter2->attributes,curr)->value == i) processQuery(iter2,conditions,projection);
+										}
+									iter2 = iter2->older;
+									}
+								}
+							iter1 = iter1->next;
+							}
+					}
+				}
+			}
 
 
 			/* INSERT FUNCTION */
@@ -329,6 +400,7 @@ printf("INSERTING CONDITION: '%s' '%s' '%s'\n",fieldName,queryOp,threshold);
 	
 	return 0;
 	}
+
 
 
 int processQuery(Document *currDoc,PList *conditions,PList *projection) {
@@ -402,4 +474,3 @@ int processQuery(Document *currDoc,PList *conditions,PList *projection) {
 
 	return vn;
     }
-
