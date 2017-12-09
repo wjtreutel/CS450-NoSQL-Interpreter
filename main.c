@@ -68,7 +68,7 @@ int main (void) {
 	curr = readLine(query);
 	char *collection,*operation,*origQuery,*version,*fieldName,*threshold,*queryOp;
 	PList *conditions,*projection;
-	int min = INT_MAX,max = 0; // for sort
+	int min = INT_MAX,max = 0,x; // for sort
 
 	while(!feof(query)) {
 		if (strcmp(curr,"") == 0) { if (!feof(query)) curr = readLine(query); continue; }
@@ -139,6 +139,7 @@ int main (void) {
 				
 				projection = newPList();
 				
+				// Parse out the version
 				if (curr[0] != '\0') {
 						curr += 3;
 						if (curr[0] == '[') curr++;
@@ -160,58 +161,43 @@ int main (void) {
 							}
 						else { version = "CURR"; }
 					}
-				else version = "1";
+				else version = "CURR";
 
 
-				// All Versions
-				//if (version == NULL) {
-				if (0) {
-					for (i = 0; i < HASH; i++) {
-						iter1 = db[i];
-						while (iter1 != NULL) {
-							iter2 = iter1;
+			
+				// PRINT 'EM OUT, PRINT 'EM OUT	
+				for (i = 0; i < HASH; i++) {
+					iter1 = db[i];
+					while (iter1 != NULL) {
+						iter2 = iter1;
+						if (version && strcmp(version,"CURR") == 0) {
+							while (iter2 != NULL) {
+								if (processQuery(iter2,conditions,projection)) break;
+								iter2 = iter2->older;
+								}
+							}
+						else if (version != NULL) {
+							j = 0;
+							//while (iter2 != NULL && j < atoi(version)) {
+							for (j = 0; j < atoi(version); j++) {
+								if (iter2 == NULL) break;
+								j += processQuery(iter2,conditions,projection);
+								iter2 = iter2->older;
+								}
+							}
+						else {
 							while (iter2 != NULL) {
 								processQuery(iter2,conditions,projection);
 								iter2 = iter2->older;
 								}
-							iter1 = iter1->next;
 							}
-						}
-					}
-
-				// Last <Version> Versions
-				else {
-					for (i = 0; i < HASH; i++) {
-						iter1 = db[i];
-						while (iter1 != NULL) {
-							iter2 = iter1;
-							if (version && strcmp(version,"CURR") == 0) {
-								while (iter2 != NULL) {
-									if (processQuery(iter2,conditions,projection)) break;
-									iter2 = iter2->older;
-									}
-								}
-							else if (version != NULL) {
-								j = 0;
-								//while (iter2 != NULL && j < atoi(version)) {
-								for (j = 0; j < atoi(version); j++) {
-									if (iter2 == NULL) break;
-									j += processQuery(iter2,/conditions,projection);
-									iter2 = iter2->older;
-									}
-								}
-							else {
-								while (iter2 != NULL) {
-									processQuery(iter2,conditions,projection);
-									iter2 = iter2->older;
-									}
-								}
-							iter1 = iter1->next;
-							}
+						iter1 = iter1->next;
 						}
 					}
 				
-				//freePList(conditions);
+				// Change to FREE PLIST
+				free(conditions);
+				free(projection);
 				}
 
 
@@ -226,35 +212,35 @@ int main (void) {
 				version = strtok(NULL,"]), ");
 				if (version) version++;
 
-				if (version == NULL) version = "0";
-				else if (strlen(version) == 0) version = "ALL";
+				if (version == NULL) version = "CURR";
+				else if (strlen(version) == 0) version = NULL;
 
-				
-				for (i = 0; i < HASH; i++) { 
-					if (db[i] == NULL) continue;
+				for (i = 0; i < HASH; i++) {
 					iter1 = db[i];
 					while (iter1 != NULL) {
-						//if (lookup(iter1->attributes,curr) != NULL) { ++count; }
-
-						/* Look through past version */
-						//iter2 = iter1->older;
 						iter2 = iter1;
-						if (strcmp(version,"ALL") == 0) {
+						if (version && strcmp(version,"CURR") == 0) {
 							while (iter2 != NULL) {
-								if (lookup(iter2->attributes,curr) != NULL) { ++count; }
+								if (lookup(iter2->attributes,curr) != NULL) { count++; break; }
+			
 								iter2 = iter2->older;
 								}
 							}
-
-						else {
-							//for (j = 1; j < atoi(version); j++) {
-							while (iter2 !=  NULL && j < atoi(version))  {
+						else if (version != NULL) {
+							j = 0;
+							//while (iter2 != NULL && j < atoi(version)) {
+							for (j = 0; j < atoi(version); j++) {
 								if (iter2 == NULL) break;
-								if (lookup(iter2->attributes,curr) != NULL) { ++count; ++j; }
+								if (lookup(iter2->attributes,curr) != NULL) { count++; }
 								iter2 = iter2->older;
 								}
 							}
-
+						else {
+							while (iter2 != NULL) {
+								if (lookup(iter2->attributes,curr) != NULL) { count++; }
+								iter2 = iter2->older;
+								}
+							}
 						iter1 = iter1->next;
 						}
 					}
@@ -273,12 +259,100 @@ int main (void) {
 				version = strtok(NULL,"]), ");
 				if (version) version++;
 
-				if (version == NULL) version = "1";
-				else if (strlen(version) == 0) version = "ALL";
+				if (version == NULL) version = "CURR";
+				else if (strlen(version) == 0) version = NULL;
 
+				conditions = newPList(); projection = newPList();
 
 				// FIND MIN AND MAX
+				for (i = 0; i < HASH; i++) {
+					iter1 = db[i];
+					while (iter1 != NULL) {
+						iter2 = iter1;
+						if (version && strcmp(version,"CURR") == 0) {
+							while (iter2 != NULL) {
+								if (lookup(iter2->attributes,curr) != NULL) { 
+									x = lookup(iter2->attributes,curr)->value;
+									if (x < min) min = x;
+									if (x > max) max = x;
+									break;
+									}
+			
+								iter2 = iter2->older;
+								}
+							}
+						else if (version != NULL) {
+							j = 0;
+							//while (iter2 != NULL && j < atoi(version)) {
+							for (j = 0; j < atoi(version); j++) {
+								if (iter2 == NULL) break;
+								if (lookup(iter2->attributes,curr) != NULL) { 
+									x = lookup(iter2->attributes,curr)->value;
+									if (x < min) min = x;
+									if (x > max) max = x;
+									}
+								iter2 = iter2->older;
+								}
+							}
+						else {
+							while (iter2 != NULL) {
+								if (lookup(iter2->attributes,curr) != NULL) {
+									x = lookup(iter2->attributes,curr)->value;
+									if (x < min) min = x;
+									if (x > max) max = x;
+									}
+								iter2 = iter2->older;
+								}
+							}
+						iter1 = iter1->next;
+						}
+					}
 
+
+					for (k = min; k <= max; k++) {
+						for (i = 0; i < HASH; i++) {
+							iter1 = db[i];
+							while (iter1 != NULL) {
+								iter2 = iter1;
+								if (version && strcmp(version,"CURR") == 0) {
+									while (iter2 != NULL) {
+										if (lookup(iter2->attributes,curr) != NULL) { 
+											x = lookup(iter2->attributes,curr)->value;
+											if (x == k) processQuery(iter2,conditions,projection);
+											break;
+											}
+					
+										iter2 = iter2->older;
+										}
+									}
+								else if (version != NULL) {
+									j = 0;
+									//while (iter2 != NULL && j < atoi(version)) {
+									for (j = 0; j < atoi(version); j++) {
+										if (iter2 == NULL) break;
+										if (lookup(iter2->attributes,curr) != NULL) { 
+											x = lookup(iter2->attributes,curr)->value;
+											if (x == k) processQuery(iter2,conditions,projection);
+											}
+										iter2 = iter2->older;
+										}
+									}
+								else {
+									while (iter2 != NULL) {
+										if (lookup(iter2->attributes,curr) != NULL) {
+											x = lookup(iter2->attributes,curr)->value;
+											if (x == k) processQuery(iter2,conditions,projection);
+											}
+										iter2 = iter2->older;
+										}
+									}
+								iter1 = iter1->next;
+								}
+							}
+
+					}
+
+			printf("MIN: %d / MAX: %d\n",min,max);
 			}
 
 
@@ -395,9 +469,6 @@ int processQuery(Document *currDoc,PList *conditions,PList *projection) {
 
 
 		while (iter != NULL) {
-			//if (currDoc->attributes == NULL) printf("NO ATTRIBUTES\n");
-			//if (iter->field == NULL) printf("NO FIELD\n");
-
 			if (lookup(currDoc->attributes,iter->field) != NULL) {
 				if (vn == 0) { printf("vn: %d ",currDoc->version); vn = 1; }
 
