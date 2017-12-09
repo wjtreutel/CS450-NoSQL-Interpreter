@@ -138,7 +138,7 @@ int main (void) {
 
 				
 				projection = newPList();
-				
+			
 				// Parse out the version
 				if (curr[0] != '\0') {
 						curr += 3;
@@ -163,7 +163,6 @@ int main (void) {
 					}
 				else version = "CURR";
 
-
 			
 				// PRINT 'EM OUT, PRINT 'EM OUT	
 				for (i = 0; i < HASH; i++) {
@@ -181,7 +180,7 @@ int main (void) {
 							//while (iter2 != NULL && j < atoi(version)) {
 							for (j = 0; j < atoi(version); j++) {
 								if (iter2 == NULL) break;
-								j += processQuery(iter2,conditions,projection);
+								processQuery(iter2,conditions,projection);
 								iter2 = iter2->older;
 								}
 							}
@@ -282,7 +281,6 @@ int main (void) {
 								}
 							}
 						else if (version != NULL) {
-							j = 0;
 							//while (iter2 != NULL && j < atoi(version)) {
 							for (j = 0; j < atoi(version); j++) {
 								if (iter2 == NULL) break;
@@ -351,8 +349,6 @@ int main (void) {
 							}
 
 					}
-
-			printf("MIN: %d / MAX: %d\n",min,max);
 			}
 
 
@@ -420,11 +416,8 @@ int processQuery(Document *currDoc,PList *conditions,PList *projection) {
 	Pnode *iter; Field **attr = NULL; Field *curr;
 	int i,x = 1,eligible = 0,vn = 0;
 	iter = conditions->head;
+
 	// Check the document values against each parameter 
-
-	//if (conditions->head == NULL) printf("No Conditions\n");
-	//if (projection->head == NULL) printf("All Attributes\n");
-
 	if (conditions->head == NULL) {
 		eligible = 1;
 		}

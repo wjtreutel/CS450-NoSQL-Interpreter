@@ -54,7 +54,6 @@ void insertParam(PList *list,char *field,char *op,int value) {
 	if (list->size == 0) list->head = list->tail = new;
 
 	else if (list->head == list->tail) {
-printf("YO\n");
 		list->tail = new;
 		list->head->next = list->tail;
 		}
