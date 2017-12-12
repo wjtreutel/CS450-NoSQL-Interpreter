@@ -1,20 +1,24 @@
-make: scanner.o dictionary.o list.o
-	gcc main.c scanner.o dictionary.o list.o -Wall -Wextra -std=c99 -g -o spice; dos2unix data.txt queries.txt;
+OBJS = scanner.o dictionary.o list.o
+OOPTS = -Wall -Wextra -g -c 
+LOPTS = -Wall -Wextra -g
 
-scanner.o: scanner.c scanner.h
-	gcc -c scanner.c -g 
+all: helloWorld
 
-dictionary.o: dictionary.c dictionary.h
-	gcc -c dictionary.c -g 
+wjtreutel : $(OBJS)
+	gcc $(LOPTS) -o wjtreutel $(OBJS)
 
-list.o: list.c list.h
-	gcc -c list.c -g 
+
+scanner.o: scanner.c
+	gcc $(OOPTS) scanner.c
+
+dictionary.o: dictionary.c
+	gcc $(OOPTS) dictionary.c
+
+list.o: list.c
+	gcc $(OOPTS) list.c
+
+clean:
+	rm -r $(OBJS) test-[rpkect
 
 test:
-	make; ./spice
-
-clean: 
-	rm *.o spice
-
-slim: 
-	make; rm *.o
+	wjtreutel

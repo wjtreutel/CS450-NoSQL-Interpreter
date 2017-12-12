@@ -44,6 +44,7 @@ int main (void) {
 	// Read in a new document
 	while (!feof(data)) {
 		if (strcmp(curr,"") == 0) { if (!feof(data)) curr = readLine(data); continue; }
+		
 		newAttrList = malloc(sizeof(Field *) * HASH);
 
 		install(newAttrList,"sysid",id);
@@ -83,6 +84,12 @@ int main (void) {
 		origQuery = myStrdup(curr);
 		fprintf(outfile,"%s\n",curr);
 		
+		/* Remove trailing whitespace from line */
+		for (i = strlen(curr) - 1; i > 0; i--) {
+			if (curr[i] == ' ') curr[i] = '\0';
+			else break;
+			}
+
 		/* PARSE COLLECTION NAME */
 		collection = strtok(curr,".");
 		if (strcmp("final",collection) == 0) {
@@ -104,7 +111,7 @@ int main (void) {
 						fieldName = myStrdup(curr);
 						fieldName = strtok(fieldName,"<=>");
 						threshold = myStrdup(fieldName);
-						threshold = strtok(NULL,",] ");
+						threshold = strtok(NULL,",] "); 
 					
 						/* Remove leading and trailing whitespace from fieldName */
 						while (fieldName[0] == ' ') fieldName++;
@@ -145,8 +152,6 @@ int main (void) {
 
 				
 				projection = newPList();
-				printf("PROJECTION: %p\n",projection);
-				printf("PROJECTION->HEAD: %p\n",projection->head);
 			
 				// Parse out the version
 				if (curr[0] != '\0') {
@@ -388,7 +393,7 @@ int main (void) {
 				fprintf(stderr,"TypeError: %s is not a function\n",origQuery);
 				}
 
-			fprintf(outfile,"\n\n");
+			fprintf(outfile,"\n");
 			}
 				
 		free(origQuery);
@@ -430,8 +435,6 @@ int processQuery(Document *currDoc,PList *conditions,PList *projection) {
 	else {
 		while (iter != NULL && x == 1) {
 
-printf("ITER: %p\n",iter);
-//printf("PROJECTION->HEAD: %p\n",projection->head);
 	    	if (lookup(currDoc->attributes,iter->field) == NULL) { 
 				iter = iter->next; continue; }
 

@@ -1,11 +1,11 @@
 
-final.insert(cash:1  money:0 DocID:7 hoes:3 problems:99 bitches:0)
+final.insert(cash:1  money:0 DocID:7 hoes:3 problems:99 bitches:0)         
 
 
-final.count([depot])
-final.count([DocID])
-final.count([Age],[])
-final.count([Dept],[2])
+final.count([depot])               
+final.count([DocID])         			
+final.count([Age],[])                 
+final.count([Dept],[2])           
 
 final.sort([Age],[])
 final.sort([Agge],[])
