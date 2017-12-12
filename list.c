@@ -50,6 +50,7 @@ void insertParam(PList *list,char *field,char *op,int value) {
 	new->field = field;
 	new->operation = op;
 	new->value = value;
+	new->next = NULL;
 
 	if (list->size == 0) list->head = list->tail = new;
 
@@ -77,6 +78,7 @@ void addToFront(PList *list,char *field) {
 	new->field = field;
 	new->operation = NULL;
 	new->value = 0;
+	new->next = NULL;
 
 
 	if (!list->head) { list->head = list->tail = new; }
@@ -87,5 +89,28 @@ void addToFront(PList *list,char *field) {
 
 	++list->size;
 
+	return;
+	}
+
+
+void freeList (PList *list) {
+	Pnode *temp;
+
+	if (list->head == NULL) return;
+
+	if (list->head == list->tail) {
+		temp = list->head;
+		free(temp);
+		}
+
+	else {
+		while (list->head != NULL) {
+		temp = list->head;
+		list->head = list->head->next;
+		free(temp);
+			}
+		}
+
+	free(list);
 	return;
 	}

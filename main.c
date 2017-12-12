@@ -2,19 +2,25 @@
 #include <stdio.h>
 #include <string.h> // strtok
 #include "scanner.h"
-#include "tree.h"
 #include "dictionary.h"
 #include "list.h"
 #define INT_MAX 2147483647
 
 int processQuery(Document *,PList *,PList *);
 
+FILE *outfile;
+
 int main (void) {
 	FILE *data = fopen("data.txt","r");
-	if (data == NULL) { printf("Data File cannot be opened for reading. Exiting . . .\n"); exit(1); }
+	if (data == NULL) { fprintf(stderr,"Data File cannot be opened for reading. Exiting . . .\n"); exit(1); }
 
 	FILE *query = fopen("queries.txt","r");
-	if (query == NULL) { printf("Query File cannot be opened for reading. Exiting . . .\n"); exit(1); }
+	if (query == NULL) { fprintf(stderr,"Query File cannot be opened for reading. Exiting . . .\n"); exit(1); }
+
+	outfile = fopen("wjtreutel.txt","w");
+	if (outfile == NULL) { fprintf(stderr,"File 'wjtreutel.txt' could not be opened for writing.\n"); exit(1); }
+
+	outfile = stdout;
 
 	char *curr;
 	char *key; int val;
@@ -41,6 +47,7 @@ int main (void) {
 		newAttrList = malloc(sizeof(Field *) * HASH);
 
 		install(newAttrList,"sysid",id);
+		install(newAttrList,"vn",1);
 		key = strtok(curr,": ");
 
 		// Parse fields
@@ -58,6 +65,7 @@ int main (void) {
 		id++;
 
 		
+		free(curr);
 		curr = readLine(data);
 		}
 
@@ -66,28 +74,28 @@ int main (void) {
 	/* Process the QUERIES.TXT file */
 	Document *iter1,*iter2;
 	curr = readLine(query);
-	char *collection,*operation,*origQuery,*version,*fieldName,*threshold,*queryOp;
+	char *collection,*operation,*origQuery,*version,*fieldName = NULL, *threshold,*queryOp;
 	PList *conditions,*projection;
 	int min = INT_MAX,max = 0,x; // for sort
 
 	while(!feof(query)) {
-		if (strcmp(curr,"") == 0) { if (!feof(query)) curr = readLine(query); continue; }
+		if (strcmp(curr,"") == 0) { free(curr);  if (!feof(query)) curr = readLine(query); continue; }
 		origQuery = myStrdup(curr);
-		printf("%s\n",curr);
+		fprintf(outfile,"%s\n",curr);
 		
 		/* PARSE COLLECTION NAME */
 		collection = strtok(curr,".");
 		if (strcmp("final",collection) == 0) {
 			operation = strtok(NULL,"(");
 
-			/* PARSE OPERATION NAME */ 
+			/* QUERY FUNCTION */ 
 			if (strcmp(operation,"query") == 0) {
 				curr = operation;
 				curr = curr + 7; // Get past the "query(["
 			
 
 				version = NULL;
-				conditions = newPList(); projection = newPList();
+				conditions = newPList(); 
 				while (curr[0] != ',' && curr[0] != ']' && curr[0] != '\0') {
 						while (curr[0] == ' ') curr++; // Get rid of preceding whitespace
 						if (curr[0] == ']') break; 
@@ -104,7 +112,6 @@ int main (void) {
 							if (fieldName[i] == ' ') fieldName[i] = '\0';
 							else break;
 							}
-						//while (fieldName[strlen(fieldName) - 1] == ' ') fieldName[strlen(fieldName) - 1] = '\0';
 
 						if (threshold == NULL) { printf("SyntaxError: %s is not a valid condition.\n",curr); break; }
 
@@ -128,7 +135,7 @@ int main (void) {
 								queryOp = "=";
 								break;
 							default:
-								printf("Error! '%c' is not a valid queryOp!\n",operation[0]);
+								fprintf(stderr,"Error! '%c' is not a valid queryOp!\n",operation[0]);
 							}
 
 						insertParam(conditions,fieldName,queryOp,atoi(threshold));
@@ -138,6 +145,8 @@ int main (void) {
 
 				
 				projection = newPList();
+				printf("PROJECTION: %p\n",projection);
+				printf("PROJECTION->HEAD: %p\n",projection->head);
 			
 				// Parse out the version
 				if (curr[0] != '\0') {
@@ -193,10 +202,6 @@ int main (void) {
 						iter1 = iter1->next;
 						}
 					}
-				
-				// Change to FREE PLIST
-				free(conditions);
-				free(projection);
 				}
 
 
@@ -244,7 +249,7 @@ int main (void) {
 						}
 					}
 
-				if (count > 0) printf("count_%s: %d\n",curr,count);
+				if (count > 0) fprintf(outfile,"count_%s: %d\n",curr,count);
 				}
 
 
@@ -368,7 +373,7 @@ int main (void) {
 					}
 
 				if (lookup(newAttrList,"DocID") == NULL) {
-					printf("ERROR: No DocID specified for new document.\nExiting . . .\n");
+					fprintf(stderr,"ERROR: No DocID specified for new document.\nExiting . . .\n");
 					exit(1);
 					}
 				
@@ -380,10 +385,10 @@ int main (void) {
 				}
 
 			else { 
-				printf("TypeError: %s is not a function\n",origQuery);
+				fprintf(stderr,"TypeError: %s is not a function\n",origQuery);
 				}
 
-			printf("\n\n");
+			fprintf(outfile,"\n\n");
 			}
 				
 		free(origQuery);
@@ -425,7 +430,10 @@ int processQuery(Document *currDoc,PList *conditions,PList *projection) {
 	else {
 		while (iter != NULL && x == 1) {
 
-	    	if (lookup(currDoc->attributes,iter->field) == NULL) { iter = iter->next; continue; }
+printf("ITER: %p\n",iter);
+//printf("PROJECTION->HEAD: %p\n",projection->head);
+	    	if (lookup(currDoc->attributes,iter->field) == NULL) { 
+				iter = iter->next; continue; }
 
 			else {
 			    x = compareIntegers(lookup(currDoc->attributes,iter->field)->value,iter->value,iter->operation);
@@ -445,17 +453,17 @@ int processQuery(Document *currDoc,PList *conditions,PList *projection) {
 		iter = projection->head;
 
 		if (iter == NULL) { 
-			printf("vn: %d ",currDoc->version);
-			printf("sysid: %03d ",lookup(currDoc->attributes,"sysid")->value);
+			fprintf(outfile,"vn: %d ",currDoc->version);
+			fprintf(outfile,"sysid: %03d ",lookup(currDoc->attributes,"sysid")->value);
 			attr = currDoc->attributes;
 			for (i = 0; i < HASH; i++) {
 				curr = attr[i];
 				while (curr != NULL) {
-					if (strcmp(curr->key,"sysid") != 0) printf("%s:%d ",curr->key,curr->value);
+					if (strcmp(curr->key,"vn") != 0 && strcmp(curr->key,"sysid") != 0) fprintf(outfile,"%s:%d ",curr->key,curr->value);
 					curr = curr->next;
 					}
 				}
-			printf("\n");
+			fprintf(outfile,"\n");
 
 			return 1;
 			}
@@ -463,16 +471,17 @@ int processQuery(Document *currDoc,PList *conditions,PList *projection) {
 
 		while (iter != NULL) {
 			if (lookup(currDoc->attributes,iter->field) != NULL) {
-				if (vn == 0) { printf("vn: %d ",currDoc->version); vn = 1; }
+				if (vn == 0) { fprintf(outfile,"vn: %d ",currDoc->version); vn = 1; }
 
 				if (strcmp(iter->field,"sysid") == 0) 
-					printf("sysid: %03d ",lookup(currDoc->attributes,"sysid")->value);
+					fprintf(outfile,"sysid: %03d ",lookup(currDoc->attributes,"sysid")->value);
 				else 
-					printf("%s: %d ",iter->field,lookup(currDoc->attributes,iter->field)->value);
+					if (strcmp(iter->field,"vn") != 0)
+					fprintf(outfile,"%s: %d ",iter->field,lookup(currDoc->attributes,iter->field)->value);
 				}
 			iter = iter->next;
 			}
-		if (vn) printf("\n");
+		if (vn) fprintf(outfile,"\n");
 		}
 
 	return vn;

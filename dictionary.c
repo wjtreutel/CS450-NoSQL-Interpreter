@@ -100,6 +100,7 @@ void insertDocument(Document **db,Document *newDoc) {
 			newDoc->next = iter->next;
 			newDoc->older = iter;
 			newDoc->version = newDoc->older->version + 1;
+			install(newDoc->attributes,"vn",newDoc->version);
 
 			// Update database to point to newDoc
 			if (prev == NULL) db[hashval] = newDoc;

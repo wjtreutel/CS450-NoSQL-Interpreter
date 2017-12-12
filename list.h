@@ -38,3 +38,4 @@ int compareIntegers (int,int,char *);
 PList *newPList(void);
 void insertParam(PList *,char *,char *,int);
 void addToFront(PList *,char *);
+void freeList(PList *);
