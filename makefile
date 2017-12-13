@@ -1,24 +1,17 @@
-OBJS = scanner.o dictionary.o list.o
-OOPTS = -Wall -Wextra -g -c 
-LOPTS = -Wall -Wextra -g
-
-all: helloWorld
-
-wjtreutel : $(OBJS)
-	gcc $(LOPTS) -o wjtreutel $(OBJS)
-
+final: main.c scanner.o dictionary.o list.o
+	gcc -Wall -Wextra -g main.c scanner.o dictionary.o list.o -o final
 
 scanner.o: scanner.c
-	gcc $(OOPTS) scanner.c
+	gcc -Wall -Wextra -g -c scanner.c
 
 dictionary.o: dictionary.c
-	gcc $(OOPTS) dictionary.c
+	gcc -Wall -Wextra -g -c dictionary.c
 
 list.o: list.c
-	gcc $(OOPTS) list.c
+	gcc -Wall -Wextra -g -c list.c
 
 clean:
-	rm -r $(OBJS) test-[rpkect
+	rm *.o final
 
 test:
-	wjtreutel
+	make; final

@@ -20,7 +20,6 @@ int main (void) {
 	outfile = fopen("wjtreutel.txt","w");
 	if (outfile == NULL) { fprintf(stderr,"File 'wjtreutel.txt' could not be opened for writing.\n"); exit(1); }
 
-	outfile = stdout;
 
 	char *curr;
 	char *key; int val;
@@ -367,6 +366,7 @@ int main (void) {
 			
 				newAttrList = malloc(sizeof(Field *) * HASH);
 
+printf("NEW INSERT: {");
 				curr = operation;
 				curr = strtok(NULL,": ");
 				while (curr != NULL) {
@@ -374,9 +374,12 @@ int main (void) {
 					curr = strtok(NULL,") ");
 					val = atoi(curr);
 					install(newAttrList,fieldName,val);
+
+printf("%s:%d ",fieldName,val);
 					curr = strtok(NULL,": ");
 					}
 
+printf("}\n");
 				if (lookup(newAttrList,"DocID") == NULL) {
 					fprintf(stderr,"ERROR: No DocID specified for new document.\nExiting . . .\n");
 					exit(1);
